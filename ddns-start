@@ -1,0 +1,41 @@
+#!/bin/sh
+#Author:ITXiaoPang
+#Site:www.OSSky.org
+
+oray () {
+  logger -s "$0: Oray Updating..."
+  oray_user="xxxx"
+  oray_pass="xxxxxxx"
+  oray_ret=$(curl -s http://${oray_user}:${oray_pass}@ddns.oray.com/ph/update?&myip=${WAN_IP_ADDRESS})
+  logger -s "$0: DDNS response: $oray_ret"
+  case "${oray_ret}" in
+    good*|nochg*) logger -s "$0: Oray update completed." ;;
+    *) ret=0 && logger -s "$0: Oray update failed." ;;
+  esac
+}
+
+update_all_ddns () {
+  oray
+}
+#Main
+logger -s "$0: Event called with args: $@" 
+
+#Get WAN IP
+if [ -n "$1" ]; then
+  WAN_IP_ADDRESS=${1}
+else
+  WAN_IP_ADDRESS=$(nvram get wan0_ipaddr)
+fi
+logger -s "$0: WAN IP: ${WAN_IP_ADDRESS}"
+
+#DDNS Update
+if [ -n "$WAN_IP_ADDRESS" ]; then
+  ret=1
+  update_all_ddns
+  #Success 1 Failed 0
+  /sbin/ddns_custom_updated ${ret}
+else
+  logger -s "$0: WARNING: no WAN IP address available.  Not updating dynamic DNS."
+  /sbin/ddns_custom_updated 0
+  return 1
+fi
